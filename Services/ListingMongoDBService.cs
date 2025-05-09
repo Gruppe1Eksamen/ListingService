@@ -8,6 +8,11 @@ public class ListingMongoDBService : IListingMongoDBService
 {
     private readonly IMongoCollection<Listing> _listingCollection;
 
+    public ListingMongoDBService(IMongoCollection<Listing> collection)
+    {
+        _listingCollection = collection;
+    }
+
 
     public async Task<Guid> CreateListingAsync(Listing listing)
     {
