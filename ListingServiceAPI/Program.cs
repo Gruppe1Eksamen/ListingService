@@ -1,20 +1,40 @@
-using ListingService.Controllers;
 using ListingService.Models;
 using ListingService.Services;
-using Microsoft.AspNetCore.Mvc;
+using MongoDB.Driver;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// 1) Read your environment variables (as set under the "http" profile in launchSettings.json)
+var mongoConn     = builder.Configuration["MongoConnectionString"]
+                    ?? throw new InvalidOperationException("Missing MongoConnectionString");
+var databaseName  = builder.Configuration["CatalogDatabase"]   // e.g. "catalogDB"
+                    ?? throw new InvalidOperationException("Missing CatalogDatabase");
+var collectionName = builder.Configuration["CatalogCollection"] // e.g. "listings"
+                     ?? throw new InvalidOperationException("Missing CatalogCollection");
+
+// 2) Register Mongo types
+builder.Services.AddSingleton<IMongoClient>(_ => 
+    new MongoClient(mongoConn));
+
+builder.Services.AddSingleton(sp =>
+    sp.GetRequiredService<IMongoClient>()
+        .GetDatabase(databaseName));            // uses your "catalogDB"
+
+builder.Services.AddSingleton(sp =>
+    sp.GetRequiredService<IMongoDatabase>()
+        .GetCollection<Listing>(collectionName)); // uses your "listings"
+
+// 3) Register your service
 builder.Services.AddSingleton<IListingMongoDBService, ListingMongoDBService>();
 
-// Add services to the container.
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+// 4) Enable controllers + Swagger
+builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// 5) Middleware
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -23,18 +43,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// In-memory storage
-var listings = new List<Listing>();
-
-// POST endpoint to create a listing
-app.MapPost("/listings", ([FromBody] Listing newListing) =>
-{
-    newListing.Id = Guid.NewGuid(); // generate a new Id
-    listings.Add(newListing);
-    return Results.Created($"/listings/{newListing.Id}", newListing);
-});
-
-// GET endpoint to return all listings
-app.MapGet("/listings", () => listings);
+// 6) Wire up attribute‐routed controllers
+app.MapControllers();
 
 app.Run();
