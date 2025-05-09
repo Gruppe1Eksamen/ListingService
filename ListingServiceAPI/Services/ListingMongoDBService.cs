@@ -20,4 +20,11 @@ public class ListingMongoDBService : IListingMongoDBService
         await _listingCollection.InsertOneAsync(listing);
         return listing.Id;
     }
+
+    public async Task<Guid> DeleteListingAsync(Listing listing)
+    {
+        var filter = Builders<Listing>.Filter.Eq(l => l.Id, listing.Id);
+        await _listingCollection.DeleteOneAsync(filter);
+        return listing.Id;
+    }
 }

@@ -27,4 +27,11 @@ public class ListingController : ControllerBase
     {
         return await _dbService.CreateListingAsync(listing);
     }
+
+    [HttpDelete("DeleteListing/{id}")]
+    public async Task<Guid> DeleteListing(Guid id)
+    {
+        var listing = new Listing { Id = id }; // Opret Listing med kun ID
+        return await _dbService.DeleteListingAsync(listing); // Kald på service med Listing objekt
+    }
 }
