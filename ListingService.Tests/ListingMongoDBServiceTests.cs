@@ -48,4 +48,51 @@ public class ListingMongoDBServiceTests
             Times.Once
         );
     }
+    [TestMethod]
+    public async Task DeleteListingAsync_DeletesListingById()
+    {
+        var mockCollection = new Mock<IMongoCollection<Listing>>();
+        var id = Guid.NewGuid();
+
+        var filter = Builders<Listing>.Filter.Eq(l => l.Id, id);
+
+        mockCollection
+            .Setup(c => c.DeleteOneAsync(It.IsAny<FilterDefinition<Listing>>(), default))
+            .ReturnsAsync(new DeleteResult.Acknowledged(1));
+
+        var service = new ListingMongoDBService(mockCollection.Object);
+
+        var resultId = await service.DeleteListingAsync(new Listing { Id = id });
+
+        Assert.AreEqual(id, resultId);
+        mockCollection.Verify(
+            c => c.DeleteOneAsync(It.IsAny<FilterDefinition<Listing>>(), default),
+            Times.Once
+        );
+    }
+
+    [TestMethod]
+    public async Task UpdateListingPriceAsync_UpdatesPriceById()
+    {
+        var mockCollection = new Mock<IMongoCollection<Listing>>();
+        var id = Guid.NewGuid();
+        float newPrice = 499.99f;
+
+        var filter = Builders<Listing>.Filter.Eq(l => l.Id, id);
+        var update = Builders<Listing>.Update.Set(l => l.AssesedPrice, newPrice);
+
+        mockCollection
+            .Setup(c => c.UpdateOneAsync(It.IsAny<FilterDefinition<Listing>>(), It.IsAny<UpdateDefinition<Listing>>(), null, default))
+            .ReturnsAsync(new UpdateResult.Acknowledged(1, 1, null));
+
+        var service = new ListingMongoDBService(mockCollection.Object);
+
+        var resultId = await service.UpdateListingPriceAsync(id, newPrice);
+
+        Assert.AreEqual(id, resultId);
+        mockCollection.Verify(
+            c => c.UpdateOneAsync(It.IsAny<FilterDefinition<Listing>>(), It.IsAny<UpdateDefinition<Listing>>(), null, default),
+            Times.Once
+        );
+    }
 }

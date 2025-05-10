@@ -34,4 +34,10 @@ public class ListingController : ControllerBase
         var listing = new Listing { Id = id }; // Opret Listing med kun ID
         return await _dbService.DeleteListingAsync(listing); // Kald på service med Listing objekt
     }
+
+    [HttpPut("{id}/price")]
+    public async Task<Guid> UpdateListingPrice(Guid id, [FromBody] float newPrice)
+    {
+        return await _dbService.UpdateListingPriceAsync(id, newPrice);
+    }
 }

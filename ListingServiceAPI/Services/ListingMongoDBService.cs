@@ -27,4 +27,12 @@ public class ListingMongoDBService : IListingMongoDBService
         await _listingCollection.DeleteOneAsync(filter);
         return listing.Id;
     }
+
+    public async Task<Guid> UpdateListingPriceAsync(Guid id, float newPrice)
+    {
+        var filter = Builders<Listing>.Filter.Eq(l => l.Id, id);
+        var update = Builders<Listing>.Update.Set(l => l.AssesedPrice, newPrice);
+        await _listingCollection.UpdateOneAsync(filter, update);
+        return id;
+    }
 }
