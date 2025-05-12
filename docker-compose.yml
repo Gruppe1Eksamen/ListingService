@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  listing-service:
+    build:
+      context: ./ListingServiceAPI
+    ports:
+      - "5136:5136"
+    environment:
+      MongoConnectionString: mongodb://mongo:27017
+      CatalogDatabase: ListingDB
+      CatalogCollection: Listings
+    depends_on:
+      - mongo
+
+  mongo:
+    image: mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+volumes:
+  mongo-data:
