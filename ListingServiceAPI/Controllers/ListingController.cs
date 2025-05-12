@@ -40,4 +40,12 @@ public class ListingController : ControllerBase
     {
         return await _dbService.UpdateListingPriceAsync(id, newPrice);
     }
+
+    [HttpGet("GetListing/{id}")]
+
+    public async Task<Listing> Getlisting(Guid id)
+    {
+        var listing = new Listing { Id = id };
+        return await _dbService.GetListingAsync(id);
+    }
 }

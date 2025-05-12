@@ -35,4 +35,10 @@ public class ListingMongoDBService : IListingMongoDBService
         await _listingCollection.UpdateOneAsync(filter, update);
         return id;
     }
+
+    public async Task<Listing> GetListingAsync(Guid id)
+    {
+        var filter = Builders<Listing>.Filter.Eq(l => l.Id, id);
+        return await _listingCollection.Find(filter).FirstOrDefaultAsync();
+    }
 }
