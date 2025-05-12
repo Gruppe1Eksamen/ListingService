@@ -23,7 +23,7 @@ public class ListingController : ControllerBase
     }
 
     [HttpPost("CreateListing")]
-    public async Task<Guid?> CreateListing(Listing listing)
+    public async Task<Guid?> CreateListing([FromBody] Listing listing)
     {
         return await _dbService.CreateListingAsync(listing);
     }

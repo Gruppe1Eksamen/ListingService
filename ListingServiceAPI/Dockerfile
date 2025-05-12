@@ -1,23 +1,20 @@
-﻿FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
-USER $APP_UID
+﻿FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /app
-EXPOSE 8080
-EXPOSE 8081
 
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
-ARG BUILD_CONFIGURATION=Release
-WORKDIR /src
-COPY ["ListingService.csproj", "./"]
-RUN dotnet restore "ListingService.csproj"
+COPY *.csproj .
+RUN dotnet restore
+
 COPY . .
-WORKDIR "/src/"
-RUN dotnet build "ListingService.csproj" -c $BUILD_CONFIGURATION -o /app/build
+RUN dotnet publish -c Release -o /out
 
-FROM build AS publish
-ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "ListingService.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
-
-FROM base AS final
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app
-COPY --from=publish /app/publish .
+
+RUN apt-get update && apt-get install -y curl
+
+COPY --from=build /out .
+
+EXPOSE 5136
+ENV ASPNETCORE_URLS=http://+:5136
+
 ENTRYPOINT ["dotnet", "ListingService.dll"]
