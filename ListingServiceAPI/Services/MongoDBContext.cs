@@ -16,10 +16,10 @@ public class MongoDBContext
         BsonSerializer.RegisterSerializer(new GuidSerializer(BsonType.String));
 
         var client = new MongoClient(config["MongoConnectionString"]);
-        Database = client.GetDatabase(config["CatalogDB"]);
+        Database = client.GetDatabase(config["ListingDB"]);
         Collection = Database.GetCollection<Listing>(config["Listings"]);
 
-        logger.LogInformation($"Connected to database {config["CatalogDB"]}");
+        logger.LogInformation($"Connected to database {config["ListingDB"]}");
         logger.LogInformation($"Using collection {config["Listings"]}");
     }
     

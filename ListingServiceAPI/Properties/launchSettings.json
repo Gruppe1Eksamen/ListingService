@@ -18,7 +18,7 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
         "MongoConnectionString": "mongodb+srv://admin:123@dbcollectioneksamen.ea3lrr1.mongodb.net/?retryWrites=true&w=majority&appName=DBCollectionEksamen",
-        "CatalogDatabase": "CatalogDB",
+        "CatalogDatabase": "ListingDB",
         "CatalogCollection": "Listings"
       }
     },
