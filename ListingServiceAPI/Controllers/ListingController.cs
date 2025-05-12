@@ -43,9 +43,15 @@ public class ListingController : ControllerBase
 
     [HttpGet("GetListing/{id}")]
 
-    public async Task<Listing> Getlisting(Guid id)
+    public async Task<Listing> GetlistingById(Guid id)
     {
         var listing = new Listing { Id = id };
-        return await _dbService.GetListingAsync(id);
+        return await _dbService.GetListingByIdAsync(id);
+    }
+    
+    [HttpGet("Getall")]
+    public async Task<IEnumerable<Listing>> GetAllListings()
+    {
+        return await _dbService.GetAllListingsAsync();
     }
 }
