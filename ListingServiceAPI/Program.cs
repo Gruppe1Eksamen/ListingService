@@ -5,6 +5,7 @@ using ListingService.Services;
 using MongoDB.Driver;
 using System.Text.Json.Serialization;
 
+
 // Setup NLog for Dependency injection and configuration
 var logger = LogManager.Setup()
     .LoadConfigurationFromFile("NLog.config")
@@ -13,6 +14,7 @@ var logger = LogManager.Setup()
 try
 {
     logger.Debug("Init main");
+    logger.Info(">>> THIS IS A TEST LOG TO LOKI <<<");
 
 
     var builder = WebApplication.CreateBuilder(args);
