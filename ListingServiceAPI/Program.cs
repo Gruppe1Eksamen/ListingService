@@ -13,8 +13,6 @@ var logger = LogManager.Setup()
 
 try
 {
-    logger.Debug("Init main");
-    logger.Info(">>> THIS IS A TEST LOG TO LOKI <<<");
 
 
     var builder = WebApplication.CreateBuilder(args);
