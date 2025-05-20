@@ -14,7 +14,7 @@ public class MongoDBContext
     public IMongoCollection<Catalog> CatalogCollection  { get; }
     public MongoDBContext(ILogger<ListingMongoDBService> logger, IConfiguration config)
     {        
-        BsonSerializer.RegisterSerializer(new GuidSerializer(BsonType.String));
+        
 
         var client = new MongoClient(config["MongoConnectionString"]);
         Database = client.GetDatabase(config["ListingDB"]);

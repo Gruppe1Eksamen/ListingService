@@ -5,7 +5,9 @@ using ListingService.Services;
 using MongoDB.Driver;
 using System.Text.Json.Serialization;
 using CatalogService.Services;
-
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization;
+using MongoDB.Bson.Serialization.Serializers;
 
 // Setup NLog for Dependency injection and configuration
 var logger = LogManager.Setup()
@@ -19,6 +21,7 @@ try
 
 
     var builder = WebApplication.CreateBuilder(args);
+    BsonSerializer.RegisterSerializer(new GuidSerializer(BsonType.String));
 
     // Use NLog for logging instead of default .NET logging
     builder.Logging.ClearProviders();
@@ -48,7 +51,11 @@ try
     
     builder.Services.AddScoped<MongoDBContext>();
     
-    builder.Services.AddHttpClient();
+    builder.Services.AddHttpClient("ListingClient", c =>
+    {
+        c.BaseAddress = new Uri("http://localhost:5136"); // Ret port hvis nødvendig!
+    });
+    
     builder.Services.AddSingleton<IListingMongoDBService, ListingMongoDBService>();
     builder.Services.AddScoped<ICatalogMongoDBService, CatalogMongoDBService>();
     
