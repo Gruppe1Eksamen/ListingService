@@ -3,9 +3,11 @@ using MongoDB.Driver;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using CatalogService.Models;
 using ListingService.Services;
 using ListingService.Controllers;
 using ListingService.Models;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 
@@ -14,6 +16,7 @@ namespace ListingService.Tests;
 [TestClass]
 public class ListingMongoDBServiceTests
 {
+    //VI mangler GetAllListingsAsync og GetListingByIdAsync
     [TestMethod]
     public async Task CreateListingAsync_InsertsListingAndReturnsId()
     {
@@ -24,6 +27,7 @@ public class ListingMongoDBServiceTests
             .Setup(c => c.InsertOneAsync(It.IsAny<Listing>(), null, default))
             .Returns(Task.CompletedTask);
 
+        // laver et test objekt som har de samme funktionaliteter  som det oprindelige
         var service = new ListingMongoDBService(mockCollection.Object);
 
         var listing = new Listing

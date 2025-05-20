@@ -52,6 +52,8 @@ public class ListingController : ControllerBase
     [HttpGet("Getall")]
     public async Task<IEnumerable<Listing>> GetAllListings()
     {
-        return await _dbService.GetAllListingsAsync();
+        var listings = await _dbService.GetAllListingsAsync();
+        return listings;
     }
+    
 }

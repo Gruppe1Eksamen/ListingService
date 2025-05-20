@@ -9,5 +9,6 @@ public interface IListingMongoDBService
     Task<Guid> UpdateListingPriceAsync(Guid id, float newPrice);
     Task<Listing> GetListingByIdAsync(Guid id);
     Task<List<Listing>> GetAllListingsAsync();
+    
 
 }

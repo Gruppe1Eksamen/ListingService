@@ -42,6 +42,7 @@ public class ListingMongoDBService : IListingMongoDBService
         return await _listingCollection.Find(filter).FirstOrDefaultAsync();
     }
     
+    
     public async Task<List<Listing>> GetAllListingsAsync()
     {
         return await _listingCollection.Find(_ => true).ToListAsync();
