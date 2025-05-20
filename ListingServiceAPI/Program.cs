@@ -4,6 +4,7 @@ using ListingService.Models;
 using ListingService.Services;
 using MongoDB.Driver;
 using System.Text.Json.Serialization;
+using CatalogService.Services;
 
 
 // Setup NLog for Dependency injection and configuration
@@ -27,7 +28,7 @@ try
     // 1) Read your environment variables (as set under the "http" profile in launchSettings.json)
     var mongoConn = builder.Configuration["MongoConnectionString"]
                     ?? throw new InvalidOperationException("Missing MongoConnectionString");
-    var databaseName = builder.Configuration["CatalogDatabase"]   // e.g. "catalogDB"
+    var databaseName = builder.Configuration["ListingDB"]   // e.g. "catalogDB"
                        ?? throw new InvalidOperationException("Missing CatalogDatabase");
     var collectionName = builder.Configuration["CatalogCollection"] // e.g. "listings"
                          ?? throw new InvalidOperationException("Missing CatalogCollection");
@@ -44,8 +45,13 @@ try
         sp.GetRequiredService<IMongoDatabase>()
             .GetCollection<Listing>(collectionName)); // uses your "listings"
 
+    
+    builder.Services.AddScoped<MongoDBContext>();
+    
+    builder.Services.AddHttpClient();
     builder.Services.AddSingleton<IListingMongoDBService, ListingMongoDBService>();
-
+    builder.Services.AddScoped<ICatalogMongoDBService, CatalogMongoDBService>();
+    
     builder.Services
         .AddControllers()
         .AddJsonOptions(options =>
