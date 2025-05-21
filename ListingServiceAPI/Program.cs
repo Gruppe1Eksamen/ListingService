@@ -83,11 +83,11 @@ builder.Services.AddSingleton<IMongoClient>(_ =>
 
 builder.Services.AddSingleton(sp =>
     sp.GetRequiredService<IMongoClient>()
-        .GetDatabase(databaseName));            // uses your "catalogDB"
+        .GetDatabase(databaseName));
 
 builder.Services.AddSingleton(sp =>
     sp.GetRequiredService<IMongoDatabase>()
-        .GetCollection<Listing>(collectionName)); // uses your "listings"
+        .GetCollection<Listing>(collectionName));
 
 builder.Services.AddSingleton<IListingMongoDBService, ListingMongoDBService>();
 
