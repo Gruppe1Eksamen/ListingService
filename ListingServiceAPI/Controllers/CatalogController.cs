@@ -6,7 +6,7 @@ namespace ListingService.Controllers;
 
 [ApiController]
 
-[Route("api/[controller]")]
+[Route("[controller]")]
 public class CatalogController : ControllerBase
 {
     private readonly ICatalogMongoDBService _catalogService;
@@ -16,13 +16,14 @@ public class CatalogController : ControllerBase
         _catalogService = catalogService;
     }
     
-    [HttpGet("catalogs")]
+    [HttpGet("catalogs")]//fjern ekstra tekst?
     public async Task<ActionResult<List<Catalog>>> GetCatalogs()
     {
         var catalogs = await _catalogService.GetAllCatalogsAsync();
         return Ok(catalogs);
     }
 
+    //findes allerede på listings?
     [HttpGet("listings")]
     public async Task<ActionResult<List<Listing>>> GetListingsFromListingService()
     {
@@ -31,7 +32,7 @@ public class CatalogController : ControllerBase
     }
     
     
-    [HttpPost("create")]
+    [HttpPost("create")]//fjern ekstra tekst?
     public async Task<ActionResult<Guid>> CreateCatalog([FromBody] string name)
     {
         var listings = await _catalogService.FetchAllListingsAsync();
@@ -46,5 +47,11 @@ public class CatalogController : ControllerBase
 
         var id = await _catalogService.CreateCatalogAsync(catalog);
         return Ok(id);
+    }
+    
+    [HttpGet("ping")]
+    public ActionResult<bool> Ping()
+    {
+        return Ok(true);
     }
 }
