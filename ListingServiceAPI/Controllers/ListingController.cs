@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace ListingService.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("[controller]")]
 
 public class ListingController : ControllerBase
 {

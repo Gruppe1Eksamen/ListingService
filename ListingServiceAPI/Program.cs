@@ -17,13 +17,9 @@ using VaultSharp.V1.Commons;
 
 // Setup NLog
 var logger = LogManager.Setup()
-    .LoadConfigurationFromFile("NLog.config")
     .GetCurrentClassLogger();
 
-try
-{
     logger.Debug("Init main");
-    logger.Info(">>> THIS IS A TEST LOG TO LOKI <<<");
 
     // Vault config before WebApplication is built
     var endPoint = Environment.GetEnvironmentVariable("VAULT_ENDPOINT") ?? "https://localhost:8201";
@@ -69,11 +65,6 @@ try
 
     BsonSerializer.RegisterSerializer(new GuidSerializer(BsonType.String));
 
-    // Logging
-    builder.Logging.ClearProviders();
-    builder.Logging.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Trace);
-    builder.Host.UseNLog();
-
     // Inject Vault secrets into config
     builder.Configuration["Secret"] = mySecret;
     builder.Configuration["Issuer"] = myIssuer;
@@ -83,8 +74,8 @@ try
                     ?? throw new InvalidOperationException("Missing MongoConnectionString");
     var databaseName = builder.Configuration["ListingDB"]
                        ?? throw new InvalidOperationException("Missing ListingDB");
-    var collectionName = builder.Configuration["CatalogCollection"]
-                         ?? throw new InvalidOperationException("Missing CatalogCollection");
+    var collectionName = builder.Configuration["Listings"]
+                         ?? throw new InvalidOperationException("Missing ListingCollection");
 
     builder.Services.AddSingleton<IMongoClient>(_ => new MongoClient(mongoConn));
     builder.Services.AddSingleton(sp => sp.GetRequiredService<IMongoClient>().GetDatabase(databaseName));
@@ -139,16 +130,7 @@ try
     app.MapControllers();
 
     app.Run();
-}
-catch (Exception ex)
-{
-    logger.Error(ex, "Stopped program because of exception");
-    throw;
-}
-finally
-{
-    LogManager.Shutdown();
-}
+
 
 static async Task<Secret<SecretData>> ReadVaultSecretWithRetryAsync(
     IVaultClient vaultClient,
