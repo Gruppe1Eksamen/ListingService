@@ -3,7 +3,6 @@ using MongoDB.Driver;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using CatalogService.Models;
 using ListingService.Services;
 using ListingService.Controllers;
 using ListingService.Models;

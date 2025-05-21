@@ -1,90 +1,112 @@
-using Moq;
-using MongoDB.Driver;
 using System;
 using System.Collections.Generic;
-using System.Threading;
 using System.Threading.Tasks;
-using CatalogService.Models;
+using ListingService.Controllers;
+using ListingService.Models;
 using ListingService.Services;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System.Linq.Expressions;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Configuration;
+using Moq;
 
 namespace ListingService.Tests
 {
     [TestClass]
-    public class CatalogMongoDbServiceTest
+    public class CatalogControllerTests
     {
-        [TestMethod]
-        public async Task GetAllCatalogsAsync_WhenCalled_ReturnsAllCatalogs()
+        private Mock<ICatalogMongoDBService> _mockService;
+        private CatalogController _controller;
+
+        [TestInitialize]
+        public void Setup()
         {
-            // ARRANGE: Fake data
-            var fakeCatalogs = new List<Catalog>
+            _mockService = new Mock<ICatalogMongoDBService>();
+            _controller = new CatalogController(_mockService.Object);
+        }
+
+        [TestMethod]
+        public async Task GetCatalogs_ReturnsOkWithCatalogList()
+        {
+            // Arrange
+            var catalogs = new List<Catalog>
             {
-                new Catalog
-                {
-                    Id = Guid.Parse("a1111111-1111-1111-1111-111111111111"),
-                    Name = "Spring Antiques Auction 2025",
-                    AuctionDate = new DateTime(2025, 6, 15),
-                    Listings = new List<ListingService.Models.Listing>()
-                },
-                new Catalog
-                {
-                    Id = Guid.Parse("d4444444-4444-4444-4444-444444444444"),
-                    Name = "Summer Fine Art & Porcelain",
-                    AuctionDate = new DateTime(2025, 7, 20),
-                    Listings = new List<ListingService.Models.Listing>()
-                }
+                new Catalog { Id = Guid.NewGuid(), Name = "Cat1" },
+                new Catalog { Id = Guid.NewGuid(), Name = "Cat2" }
             };
+            _mockService
+                .Setup(s => s.GetAllCatalogsAsync())
+                .ReturnsAsync(catalogs);
 
-            // 1. Mock IFindFluent<Catalog, Catalog>
-            var mockFluent = new Mock<IFindFluent<Catalog, Catalog>>();
-            mockFluent
-                .Setup(f => f.ToListAsync(It.IsAny<CancellationToken>()))
-                .ReturnsAsync(fakeCatalogs);
+            // Act
+            var actionResult = await _controller.GetCatalogs();
 
-            // 2. Mock IMongoCollection<Catalog> for begge relevante overloads af Find
-            var mockCatalogCollection = new Mock<IMongoCollection<Catalog>>();
+            // Assert
+            var ok = actionResult.Result as OkObjectResult;
+            Assert.IsNotNull(ok, "Forventer OkObjectResult");
+            var returned = ok.Value as List<Catalog>;
+            CollectionAssert.AreEqual(catalogs, returned);
+        }
 
-            // a) Overload med kun filter (det din service bruger)
-            mockCatalogCollection
-                .Setup(c => c.Find(It.IsAny<Expression<Func<Catalog, bool>>>(), (FindOptions<Catalog, Catalog>)null))
-                .Returns(mockFluent.Object);
+        [TestMethod]
+        public async Task GetListingsFromListingService_ReturnsOkWithListingList()
+        {
+            // Arrange
+            var listings = new List<Listing>
+            {
+                new Listing { Id = Guid.NewGuid(), Name = "L1" },
+                new Listing { Id = Guid.NewGuid(), Name = "L2" }
+            };
+            _mockService
+                .Setup(s => s.FetchAllListingsAsync())
+                .ReturnsAsync(listings);
 
-            // b) Overload med filter + options (for robusthed)
-            mockCatalogCollection
-                .Setup(c => c.Find(It.IsAny<Expression<Func<Catalog, bool>>>(), It.IsAny<FindOptions<Catalog, Catalog>>()))
-                .Returns(mockFluent.Object);
+            // Act
+            var actionResult = await _controller.GetListingsFromListingService();
 
-            // 3. Mock Logger og Config for MongoDBContext
-            var mockLogger = new Mock<ILogger<ListingMongoDBService>>();
-            var mockConfig = new Mock<IConfiguration>();
+            // Assert
+            var ok = actionResult.Result as OkObjectResult;
+            Assert.IsNotNull(ok, "Forventer OkObjectResult");
+            var returned = ok.Value as List<Listing>;
+            CollectionAssert.AreEqual(listings, returned);
+        }
 
-            // 4. Mock MongoDBContext (brug mockLogger & mockConfig)
-            var mockContext = new Mock<MongoDBContext>(mockLogger.Object, mockConfig.Object);
-            mockContext
-                .SetupGet(ctx => ctx.CatalogCollection)
-                .Returns(mockCatalogCollection.Object);
+        [TestMethod]
+        public async Task CreateCatalog_ReturnsOkWithCreatedId_AndPassesCorrectCatalog()
+        {
+            // Arrange
+            var name = "NewCatalog";
+            var listings = new List<Listing>
+            {
+                new Listing { Id = Guid.NewGuid(), Name = "LX" }
+            };
+            var expectedId = Guid.NewGuid();
 
-            // 5. Mock IHttpClientFactory
-            var mockHttpFactory = new Mock<IHttpClientFactory>();
+            _mockService
+                .Setup(s => s.FetchAllListingsAsync())
+                .ReturnsAsync(listings);
 
-            // 6. Opret service med mocket context og httpFactory
-            var service = new CatalogMongoDBService(mockContext.Object, mockHttpFactory.Object);
+            Catalog captured = null;
+            _mockService
+                .Setup(s => s.CreateCatalogAsync(It.IsAny<Catalog>()))
+                .Callback<Catalog>(c => captured = c)
+                .ReturnsAsync(expectedId);
 
-            // ACT
-            var result = await service.GetAllCatalogsAsync();
+            // Act
+            var actionResult = await _controller.CreateCatalog(name);
 
-            // ASSERT
-            CollectionAssert.AreEqual(fakeCatalogs, result);
+            // Assert
+            var ok = actionResult.Result as OkObjectResult;
+            Assert.IsNotNull(ok, "Forventer OkObjectResult");
+            Assert.AreEqual(expectedId, ok.Value);
 
-            // VERIFY: Find blev kaldt
-            mockCatalogCollection.Verify(c =>
-                c.Find(
-                    It.IsAny<Expression<Func<Catalog, bool>>>(),
-                    (FindOptions<Catalog, Catalog>)null), // matcher overload din service faktisk bruger!
-                Times.Once);
+            // Verificer at service fik den rigtige Catalog
+            Assert.IsNotNull(captured, "Service.CreateCatalogAsync blev ikke kaldt");
+            Assert.AreEqual(name, captured.Name);
+            CollectionAssert.AreEqual(listings, captured.Listings);
+
+            // AuctionDate skal være præcis 7 dage frem (dato‐sammenligning for stabilitet)
+            var expectedDate = DateTime.UtcNow.AddDays(7).Date;
+            Assert.AreEqual(expectedDate, captured.AuctionDate.Date);
+            Assert.AreNotEqual(Guid.Empty, captured.Id, "Catalog.Id bør være sat til en ny Guid");
         }
     }
 }

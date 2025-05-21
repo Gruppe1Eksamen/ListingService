@@ -1,5 +1,3 @@
-using CatalogService.Models;
-using CatalogService.Services;
 using ListingService.Models;
 using ListingService.Services;
 using Microsoft.AspNetCore.Mvc;

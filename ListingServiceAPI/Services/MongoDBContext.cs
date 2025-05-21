@@ -1,5 +1,4 @@
 using ListingService.Models;
-using CatalogService.Models;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;

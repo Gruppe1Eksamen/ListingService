@@ -5,7 +5,6 @@ using ListingService.Services;
 using MongoDB.Driver;
 using System.Text.Json.Serialization;
 using System.Text;
-using CatalogService.Services;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;

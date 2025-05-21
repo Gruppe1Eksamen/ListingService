@@ -2,7 +2,7 @@ using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using ListingService.Models;
 
-namespace CatalogService.Models;
+namespace ListingService.Models;
 
 public class Catalog
 {

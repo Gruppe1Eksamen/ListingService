@@ -1,7 +1,6 @@
-using CatalogService.Models;
 using ListingService.Models;
 
-namespace CatalogService.Services
+namespace ListingService.Services
 {
     public interface ICatalogMongoDBService
     {

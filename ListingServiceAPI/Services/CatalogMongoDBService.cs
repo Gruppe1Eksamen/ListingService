@@ -1,8 +1,6 @@
-using CatalogService.Models;
 using MongoDB.Driver;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using CatalogService.Services;
 using ListingService.Models;
 using ListingService.Services;
 
