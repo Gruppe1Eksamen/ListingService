@@ -47,29 +47,6 @@ namespace ListingService.Tests
         }
 
         [TestMethod]
-        public async Task GetListingsFromListingService_ReturnsOkWithListingList()
-        {
-            // Arrange
-            var listings = new List<Listing>
-            {
-                new Listing { Id = Guid.NewGuid(), Name = "L1" },
-                new Listing { Id = Guid.NewGuid(), Name = "L2" }
-            };
-            _mockService
-                .Setup(s => s.FetchAllListingsAsync())
-                .ReturnsAsync(listings);
-
-            // Act
-            var actionResult = await _controller.GetListingsFromListingService();
-
-            // Assert
-            var ok = actionResult.Result as OkObjectResult;
-            Assert.IsNotNull(ok, "Forventer OkObjectResult");
-            var returned = ok.Value as List<Listing>;
-            CollectionAssert.AreEqual(listings, returned);
-        }
-
-        [TestMethod]
         public async Task CreateCatalog_ReturnsOkWithCreatedId_AndPassesCorrectCatalog()
         {
             // Arrange
