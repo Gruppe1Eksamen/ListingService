@@ -15,10 +15,12 @@ using VaultSharp.V1.AuthMethods.Token;
 using VaultSharp.V1.AuthMethods;
 using VaultSharp.V1.Commons;
 
-// Setup NLog
 var logger = LogManager.Setup()
+    .LoadConfigurationFromFile("NLog.config")
     .GetCurrentClassLogger();
 
+try
+{
     logger.Debug("Init main");
 
     // Vault config before WebApplication is built
@@ -40,28 +42,23 @@ var logger = LogManager.Setup()
     };
     IVaultClient vaultClient = new VaultClient(vaultClientSettings);
 
-    Secret<SecretData> kv2Secret;
-    try
-    {
-        kv2Secret = await ReadVaultSecretWithRetryAsync(
-            vaultClient,
-            path: "passwords",
-            mountPoint: "secret",
-            maxRetries: 5,
-            delayBetweenRetries: TimeSpan.FromSeconds(5));
-    }
-    catch (Exception ex)
-    {
-        logger.Error("Kunne ikke hente secrets fra Vault efter 5 forsøg: " + ex.Message);
-        return;
-    }
+    Secret<SecretData> kv2Secret = await ReadVaultSecretWithRetryAsync(
+        vaultClient,
+        path: "passwords",
+        mountPoint: "secret",
+        maxRetries: 5,
+        delayBetweenRetries: TimeSpan.FromSeconds(5));
 
     var mySecret = kv2Secret.Data.Data["Secret"].ToString();
     var myIssuer = kv2Secret.Data.Data["Issuer"].ToString();
     logger.Info($"Vault Issuer: {myIssuer}");
 
-    // Build the app
     var builder = WebApplication.CreateBuilder(args);
+
+    // Add NLog to ASP.NET Core
+    builder.Logging.ClearProviders();
+    builder.Logging.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Trace);
+    builder.Host.UseNLog();
 
     BsonSerializer.RegisterSerializer(new GuidSerializer(BsonType.String));
 
@@ -130,6 +127,16 @@ var logger = LogManager.Setup()
     app.MapControllers();
 
     app.Run();
+}
+catch (Exception ex)
+{
+    logger.Error(ex, "Program stopped due to exception");
+    throw;
+}
+finally
+{
+    LogManager.Shutdown(); // Ensure all logs are flushed before exit
+}
 
 
 static async Task<Secret<SecretData>> ReadVaultSecretWithRetryAsync(
