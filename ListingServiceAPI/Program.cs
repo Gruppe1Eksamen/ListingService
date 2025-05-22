@@ -83,7 +83,6 @@ var logger = LogManager.Setup()
 
     builder.Services.AddScoped<MongoDBContext>();
     builder.Services.AddSingleton<IListingMongoDBService, ListingMongoDBService>();
-    builder.Services.AddScoped<ICatalogMongoDBService, CatalogMongoDBService>();
 
     // HttpClient
     builder.Services.AddHttpClient("ListingClient", c =>
