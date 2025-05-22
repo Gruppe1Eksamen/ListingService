@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace ListingService.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("[controller]")]
 
 public class ListingController : ControllerBase
 {
@@ -22,17 +22,17 @@ public class ListingController : ControllerBase
         _dbService = dbService;
     }
 
-    [HttpPost("CreateListing")]
+    [HttpPost]
     public async Task<Guid?> CreateListing([FromBody] Listing listing)
     {
         return await _dbService.CreateListingAsync(listing);
     }
 
-    [HttpDelete("DeleteListing/{id}")]
+    [HttpDelete("/{id}")]
     public async Task<Guid> DeleteListing(Guid id)
     {
-        var listing = new Listing { Id = id }; // Opret Listing med kun ID
-        return await _dbService.DeleteListingAsync(listing); // Kald på service med Listing objekt
+        var listing = new Listing { Id = id };
+        return await _dbService.DeleteListingAsync(listing);
     }
 
     [HttpPut("{id}/price")]
@@ -41,17 +41,18 @@ public class ListingController : ControllerBase
         return await _dbService.UpdateListingPriceAsync(id, newPrice);
     }
 
-    [HttpGet("GetListing/{id}")]
-
+    [HttpGet("/{id}")]
     public async Task<Listing> GetlistingById(Guid id)
     {
         var listing = new Listing { Id = id };
         return await _dbService.GetListingByIdAsync(id);
     }
     
-    [HttpGet("Getall")]
+    [HttpGet]
     public async Task<IEnumerable<Listing>> GetAllListings()
     {
-        return await _dbService.GetAllListingsAsync();
+        var listings = await _dbService.GetAllListingsAsync();
+        return listings;
     }
+    
 }
