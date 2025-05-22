@@ -1,5 +1,5 @@
 using ListingService.Models;
-
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace ListingService.Services;
@@ -14,21 +14,20 @@ public class ListingMongoDBService : IListingMongoDBService
     }
 
 
-    public async Task<Guid> CreateListingAsync(Listing listing)
+    public async Task<string> CreateListingAsync(Listing listing)
     {
-        listing.Id = Guid.NewGuid();
+        listing.Id = ObjectId.GenerateNewId().ToString(); // Generate a string-based ID
         await _listingCollection.InsertOneAsync(listing);
         return listing.Id;
     }
-
-    public async Task<Guid> DeleteListingAsync(Listing listing)
+    
+    public async Task<bool> DeleteListingAsync(string id)
     {
-        var filter = Builders<Listing>.Filter.Eq(l => l.Id, listing.Id);
-        await _listingCollection.DeleteOneAsync(filter);
-        return listing.Id;
+        var result = await _listingCollection.DeleteOneAsync(u => u.Id == id);
+        return result.DeletedCount > 0;
     }
 
-    public async Task<Guid> UpdateListingPriceAsync(Guid id, float newPrice)
+    public async Task<string> UpdateListingPriceAsync(string id, float newPrice)
     {
         var filter = Builders<Listing>.Filter.Eq(l => l.Id, id);
         var update = Builders<Listing>.Update.Set(l => l.AssesedPrice, newPrice);
@@ -36,12 +35,10 @@ public class ListingMongoDBService : IListingMongoDBService
         return id;
     }
 
-    public async Task<Listing> GetListingByIdAsync(Guid id)
+    public async Task<Listing> GetListingByIdAsync(string id)
     {
-        var filter = Builders<Listing>.Filter.Eq(l => l.Id, id);
-        return await _listingCollection.Find(filter).FirstOrDefaultAsync();
+        return await _listingCollection.Find(u => u.Id == id).FirstOrDefaultAsync();
     }
-    
     
     public async Task<List<Listing>> GetAllListingsAsync()
     {
