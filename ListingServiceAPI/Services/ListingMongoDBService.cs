@@ -16,7 +16,7 @@ public class ListingMongoDBService : IListingMongoDBService
 
     public async Task<string> CreateListingAsync(Listing listing)
     {
-        listing.Id = ObjectId.GenerateNewId().ToString(); // Generate a string-based ID
+        listing.Id = ObjectId.GenerateNewId().ToString();
         await _listingCollection.InsertOneAsync(listing);
         return listing.Id;
     }
