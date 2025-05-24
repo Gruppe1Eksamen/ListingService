@@ -16,119 +16,126 @@ using VaultSharp.V1.AuthMethods;
 using VaultSharp.V1.Commons;
 
 // Setup NLog
-var logger = LogManager.Setup()
+var logger = LogManager
+    .Setup()
+    .LoadConfigurationFromAppSettings()
     .GetCurrentClassLogger();
 
-    logger.Debug("Init main");
+logger.Debug("Init main");
 
-    // Vault config before WebApplication is built
-    var endPoint = Environment.GetEnvironmentVariable("VAULT_ENDPOINT") ?? "https://localhost:8201";
-    logger.Info($"VAULT_ENDPOINT: {endPoint}");
+// Vault config before WebApplication is built
+var endPoint = Environment.GetEnvironmentVariable("VAULT_ENDPOINT") ?? "https://localhost:8201";
+logger.Info($"VAULT_ENDPOINT: {endPoint}");
 
-    var httpClientHandler = new HttpClientHandler
+var httpClientHandler = new HttpClientHandler
+{
+    ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+};
+
+IAuthMethodInfo authMethod = new TokenAuthMethodInfo("00000000-0000-0000-0000-000000000000");
+var vaultClientSettings = new VaultClientSettings(endPoint, authMethod)
+{
+    MyHttpClientProviderFunc = handler => new HttpClient(httpClientHandler)
     {
-        ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
-    };
+        BaseAddress = new Uri(endPoint)
+    }
+};
+IVaultClient vaultClient = new VaultClient(vaultClientSettings);
 
-    IAuthMethodInfo authMethod = new TokenAuthMethodInfo("00000000-0000-0000-0000-000000000000");
-    var vaultClientSettings = new VaultClientSettings(endPoint, authMethod)
+Secret<SecretData> kv2Secret;
+try
+{
+    kv2Secret = await ReadVaultSecretWithRetryAsync(
+        vaultClient,
+        path: "passwords",
+        mountPoint: "secret",
+        maxRetries: 5,
+        delayBetweenRetries: TimeSpan.FromSeconds(5));
+}
+catch (Exception ex)
+{
+    logger.Error("Kunne ikke hente secrets fra Vault efter 5 forsøg: " + ex.Message);
+    return;
+}
+
+var mySecret = kv2Secret.Data.Data["Secret"].ToString();
+var myIssuer = kv2Secret.Data.Data["Issuer"].ToString();
+logger.Info($"Vault Issuer: {myIssuer}");
+
+// Build the app
+var builder = WebApplication.CreateBuilder(args);
+
+BsonSerializer.RegisterSerializer(new GuidSerializer(BsonType.String));
+
+// Inject Vault secrets into config
+builder.Configuration["Secret"] = mySecret;
+builder.Configuration["Issuer"] = myIssuer;
+
+// Enable NLog for ASP.NET Core
+builder.Logging.ClearProviders();
+builder.Logging.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Trace);
+builder.Host.UseNLog();
+
+// MongoDB
+var mongoConn = builder.Configuration["MongoConnectionString"]
+                ?? throw new InvalidOperationException("Missing MongoConnectionString");
+var databaseName = builder.Configuration["ListingDB"]
+                   ?? throw new InvalidOperationException("Missing ListingDB");
+var collectionName = builder.Configuration["Listings"]
+                     ?? throw new InvalidOperationException("Missing ListingCollection");
+
+builder.Services.AddSingleton<IMongoClient>(_ => new MongoClient(mongoConn));
+builder.Services.AddSingleton(sp => sp.GetRequiredService<IMongoClient>().GetDatabase(databaseName));
+builder.Services.AddSingleton(sp => sp.GetRequiredService<IMongoDatabase>().GetCollection<Listing>(collectionName));
+
+builder.Services.AddScoped<MongoDBContext>();
+builder.Services.AddSingleton<IListingMongoDBService, ListingMongoDBService>();
+
+// HttpClient
+builder.Services.AddHttpClient("ListingClient", c =>
+{
+    c.BaseAddress = new Uri("http://localhost:5136");
+});
+
+// JWT Authentication
+builder.Services
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
     {
-        MyHttpClientProviderFunc = handler => new HttpClient(httpClientHandler)
+        options.TokenValidationParameters = new TokenValidationParameters
         {
-            BaseAddress = new Uri(endPoint)
-        }
-    };
-    IVaultClient vaultClient = new VaultClient(vaultClientSettings);
-
-    Secret<SecretData> kv2Secret;
-    try
-    {
-        kv2Secret = await ReadVaultSecretWithRetryAsync(
-            vaultClient,
-            path: "passwords",
-            mountPoint: "secret",
-            maxRetries: 5,
-            delayBetweenRetries: TimeSpan.FromSeconds(5));
-    }
-    catch (Exception ex)
-    {
-        logger.Error("Kunne ikke hente secrets fra Vault efter 5 forsøg: " + ex.Message);
-        return;
-    }
-
-    var mySecret = kv2Secret.Data.Data["Secret"].ToString();
-    var myIssuer = kv2Secret.Data.Data["Issuer"].ToString();
-    logger.Info($"Vault Issuer: {myIssuer}");
-
-    // Build the app
-    var builder = WebApplication.CreateBuilder(args);
-
-    BsonSerializer.RegisterSerializer(new GuidSerializer(BsonType.String));
-
-    // Inject Vault secrets into config
-    builder.Configuration["Secret"] = mySecret;
-    builder.Configuration["Issuer"] = myIssuer;
-
-    // MongoDB
-    var mongoConn = builder.Configuration["MongoConnectionString"]
-                    ?? throw new InvalidOperationException("Missing MongoConnectionString");
-    var databaseName = builder.Configuration["ListingDB"]
-                       ?? throw new InvalidOperationException("Missing ListingDB");
-    var collectionName = builder.Configuration["Listings"]
-                         ?? throw new InvalidOperationException("Missing ListingCollection");
-
-    builder.Services.AddSingleton<IMongoClient>(_ => new MongoClient(mongoConn));
-    builder.Services.AddSingleton(sp => sp.GetRequiredService<IMongoClient>().GetDatabase(databaseName));
-    builder.Services.AddSingleton(sp => sp.GetRequiredService<IMongoDatabase>().GetCollection<Listing>(collectionName));
-
-    builder.Services.AddScoped<MongoDBContext>();
-    builder.Services.AddSingleton<IListingMongoDBService, ListingMongoDBService>();
-
-    // HttpClient
-    builder.Services.AddHttpClient("ListingClient", c =>
-    {
-        c.BaseAddress = new Uri("http://localhost:5136");
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = myIssuer,
+            ValidAudience = "http://localhost",
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(mySecret))
+        };
     });
 
-    // JWT Authentication
-    builder.Services
-        .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-        .AddJwtBearer(options =>
-        {
-            options.TokenValidationParameters = new TokenValidationParameters
-            {
-                ValidateIssuer = true,
-                ValidateAudience = true,
-                ValidateLifetime = true,
-                ValidateIssuerSigningKey = true,
-                ValidIssuer = myIssuer,
-                ValidAudience = "http://localhost",
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(mySecret))
-            };
-        });
+// Controllers and Swagger
+builder.Services
+    .AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    });
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
-    // Controllers and Swagger
-    builder.Services
-        .AddControllers()
-        .AddJsonOptions(options =>
-        {
-            options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
-        });
-    builder.Services.AddEndpointsApiExplorer();
-    builder.Services.AddSwaggerGen();
+var app = builder.Build();
 
-    var app = builder.Build();
+app.UseSwagger();
+app.UseSwaggerUI();
 
-    app.UseSwagger();
-    app.UseSwaggerUI();
+// app.UseHttpsRedirection(); // Enable if needed
+app.UseAuthentication();
+app.UseAuthorization();
 
-    // app.UseHttpsRedirection(); // Enable if needed
-    app.UseAuthentication();
-    app.UseAuthorization();
+app.MapControllers();
 
-    app.MapControllers();
-
-    app.Run();
+app.Run();
 
 
 static async Task<Secret<SecretData>> ReadVaultSecretWithRetryAsync(
