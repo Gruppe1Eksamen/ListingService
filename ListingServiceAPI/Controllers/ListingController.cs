@@ -23,26 +23,30 @@ public class ListingController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<Guid?> CreateListing([FromBody] Listing listing)
+    public async Task<string?> CreateListing([FromBody] Listing listing)
     {
         return await _dbService.CreateListingAsync(listing);
     }
 
-    [HttpDelete("/{id}")]
-    public async Task<Guid> DeleteListing(Guid id)
+    [HttpDelete("{id}")]
+    public async Task<ActionResult> DeleteListing(string id)
     {
-        var listing = new Listing { Id = id };
-        return await _dbService.DeleteListingAsync(listing);
+        var result = await _dbService.DeleteListingAsync(id);
+        if (!result)
+        {
+            return NotFound();
+        }
+        return NoContent();
     }
 
     [HttpPut("{id}/price")]
-    public async Task<Guid> UpdateListingPrice(Guid id, [FromBody] float newPrice)
+    public async Task<string> UpdateListingPrice(string id, [FromBody] float newPrice)
     {
         return await _dbService.UpdateListingPriceAsync(id, newPrice);
     }
 
-    [HttpGet("/{id}")]
-    public async Task<Listing> GetlistingById(Guid id)
+    [HttpGet("{id}")]
+    public async Task<Listing> GetlistingById(string id)
     {
         var listing = new Listing { Id = id };
         return await _dbService.GetListingByIdAsync(id);
