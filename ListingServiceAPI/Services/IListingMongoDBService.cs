@@ -4,10 +4,11 @@ namespace ListingService.Services;
 
 public interface IListingMongoDBService
 {
-    Task<Guid> CreateListingAsync(Listing listing);
-    Task<Guid> DeleteListingAsync(Listing listing);
-    Task<Guid> UpdateListingPriceAsync(Guid id, float newPrice);
-    Task<Listing> GetListingByIdAsync(Guid id);
+    Task<string> CreateListingAsync(Listing listing);
+    Task<bool> DeleteListingAsync(string id);
+    Task<string> UpdateListingPriceAsync(string id, float newPrice);
+    Task<Listing> GetListingByIdAsync(string id);
     Task<List<Listing>> GetAllListingsAsync();
+    
 
 }
