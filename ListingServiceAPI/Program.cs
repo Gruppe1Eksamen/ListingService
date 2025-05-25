@@ -2,53 +2,67 @@ using ListingService.Models;
 using ListingService.Services;
 using MongoDB.Driver;
 using System.Text.Json.Serialization;
+using NLog;
+using NLog.Web;
 
+// Setup NLog
+var logger = LogManager
+    .Setup()
+    .LoadConfigurationFromFile("NLog.config")
+    .GetCurrentClassLogger();
 
-var builder = WebApplication.CreateBuilder(args);
+logger.Debug("Init main");
 
-// 1) Read your environment variables (as set under the "http" profile in launchSettings.json)
-var mongoConn     = builder.Configuration["MongoConnectionString"]
+try
+{
+    var builder = WebApplication.CreateBuilder(args);
+
+    // Clear default logging and enable NLog
+    builder.Logging.ClearProviders();
+    builder.Logging.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Trace);
+    builder.Host.UseNLog();
+
+    // Read config / env variables
+    var mongoConn = builder.Configuration["MongoConnectionString"]
                     ?? throw new InvalidOperationException("Missing MongoConnectionString");
-var databaseName  = builder.Configuration["CatalogDatabase"]   // e.g. "catalogDB"
-                    ?? throw new InvalidOperationException("Missing CatalogDatabase");
-var collectionName = builder.Configuration["CatalogCollection"] // e.g. "listings"
-                     ?? throw new InvalidOperationException("Missing CatalogCollection");
+    var databaseName = builder.Configuration["CatalogDatabase"]
+                       ?? throw new InvalidOperationException("Missing CatalogDatabase");
+    var collectionName = builder.Configuration["CatalogCollection"]
+                         ?? throw new InvalidOperationException("Missing CatalogCollection");
 
-// 2) Register Mongo types
-builder.Services.AddSingleton<IMongoClient>(_ => 
-    new MongoClient(mongoConn));
+    // Register Mongo services
+    builder.Services.AddSingleton<IMongoClient>(_ => new MongoClient(mongoConn));
+    builder.Services.AddSingleton(sp => sp.GetRequiredService<IMongoClient>().GetDatabase(databaseName));
+    builder.Services.AddSingleton(sp => sp.GetRequiredService<IMongoDatabase>().GetCollection<Listing>(collectionName));
+    builder.Services.AddSingleton<IListingMongoDBService, ListingMongoDBService>();
 
-builder.Services.AddSingleton(sp =>
-    sp.GetRequiredService<IMongoClient>()
-        .GetDatabase(databaseName));            // uses your "catalogDB"
+    // Controllers + JSON enum converter
+    builder.Services.AddControllers()
+        .AddJsonOptions(options =>
+        {
+            options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        });
 
-builder.Services.AddSingleton(sp =>
-    sp.GetRequiredService<IMongoDatabase>()
-        .GetCollection<Listing>(collectionName)); // uses your "listings"
+    builder.Services.AddEndpointsApiExplorer();
+    builder.Services.AddSwaggerGen();
 
-builder.Services.AddSingleton<IListingMongoDBService, ListingMongoDBService>();
-
-builder.Services
-    .AddControllers()
-    .AddJsonOptions(options =>
-    {
-        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
-    });
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
-var app = builder.Build();
-
-
-
+    var app = builder.Build();
 
     app.UseSwagger();
     app.UseSwaggerUI();
 
+    // app.UseHttpsRedirection();
 
-//app.UseHttpsRedirection();
+    app.MapControllers();
 
-// 6) Wire up attribute‐routed controllers
-app.MapControllers();
-
-app.Run();
+    app.Run();
+}
+catch (Exception ex)
+{
+    logger.Error(ex, "Application stopped due to exception");
+    throw;
+}
+finally
+{
+    LogManager.Shutdown();
+}
