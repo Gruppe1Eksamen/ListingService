@@ -22,7 +22,6 @@ var logger = LogManager.Setup()
 
 logger.Debug("Init main");
 
-// Vault config before WebApplication is built
 var endPoint = Environment.GetEnvironmentVariable("VAULT_ENDPOINT") ?? "https://localhost:8201";
 logger.Info($"VAULT_ENDPOINT: {endPoint}");
 
