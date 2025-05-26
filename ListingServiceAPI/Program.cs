@@ -16,9 +16,8 @@ using VaultSharp.V1.AuthMethods;
 using VaultSharp.V1.Commons;
 
 // Setup NLog
-var logger = LogManager
-    .Setup()
-    .LoadConfigurationFromAppSettings()
+var logger = LogManager.Setup()
+    .LoadConfigurationFromFile("NLog.config")
     .GetCurrentClassLogger();
 
 logger.Debug("Init main");
