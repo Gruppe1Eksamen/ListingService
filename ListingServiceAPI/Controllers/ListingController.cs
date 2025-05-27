@@ -56,7 +56,7 @@ public class ListingController : ControllerBase
         return await _dbService.GetListingByIdAsync(id);
     }
     
-    [Authorize]
+    [AllowAnonymous]
     [HttpGet]
     public async Task<IEnumerable<Listing>> GetAllListings()
     {
